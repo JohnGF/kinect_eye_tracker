@@ -23,7 +23,8 @@ precise gaze matters.
 - **Recording (`--record`):** colour video plus per-frame metadata, for offline models such as
   L2CS-Net (`offline_l2cs.py`).
 - **LSL outlet** `KinectGaze` (type `Gaze`, 10 × float32): `gaze_x, gaze_y, head_x, head_y` (screen px),
-  `head_yaw, head_pitch, head_roll` (deg), `head_dist_cm`, `blink_l, blink_r`. Samples are pushed per
+  `head_yaw, head_pitch, head_roll` (deg), `head_dist` (cm), `blink_l, blink_r` (0–1). Channel labels, units
+  and the screen/camera geometry are in the stream header. Samples are pushed per
   processed frame (about 15–16 Hz on the test machine; the declared nominal rate is 30 Hz).
 - Display filters: I-VT fixation/saccade filter on gaze, 1-Euro filter and a 0.8° rotation
   deadband on head pose.

@@ -65,6 +65,38 @@ def ensure_model_exists():
         print("Download complete.")
 
 
+# KinectGaze channels, in push order. Labels match nautilus_bci's recorder (KNOWN_CHANNELS).
+LSL_CHANNELS = [
+    ("gaze_x", "px"), ("gaze_y", "px"), ("head_x", "px"), ("head_y", "px"),
+    ("head_yaw", "deg"), ("head_pitch", "deg"), ("head_roll", "deg"),
+    ("head_dist", "cm"), ("blink_l", "score"), ("blink_r", "score"),
+]
+
+
+def make_lsl_info(screen: ScreenGeometry):
+    """StreamInfo for KinectGaze with channel labels/units and the screen geometry needed to
+    turn the pixel channels back into angles."""
+    from pylsl import StreamInfo
+    info = StreamInfo(name="KinectGaze", type="Gaze", channel_count=len(LSL_CHANNELS),
+                      nominal_srate=30, channel_format="float32", source_id="kinect_v2_eyetracker")
+    desc = info.desc()
+    desc.append_child_value("manufacturer", "Microsoft Kinect v2 + MediaPipe FaceLandmarker")
+    chans = desc.append_child("channels")
+    for label, unit in LSL_CHANNELS:
+        ch = chans.append_child("channel")
+        ch.append_child_value("label", label)
+        ch.append_child_value("unit", unit)
+        ch.append_child_value("type", "Gaze")
+    geo = desc.append_child("screen")
+    for key, value in (("width_px", screen.w_px), ("height_px", screen.h_px), ("width_cm", screen.w_cm),
+                       ("height_cm", screen.h_cm), ("camera_x_cm", screen.cam_x_cm),
+                       ("mediapipe_dist_scale", MEDIAPIPE_DIST_SCALE)):
+        geo.append_child_value(key, str(value))
+    desc.append_child_value("note", "gaze/head px are screen pixels (0,0 = top-left); head_yaw/pitch fixed "
+                                    "2026-10-31 (earlier recordings had them swapped)")
+    return info
+
+
 class KinectEyeTrackerApp:
     def __init__(self, device: str = "/dev/video10", enable_lsl: bool = False, fullscreen: bool = True,
                  headless: bool = False, use_sweep: bool = True, record_dir: str = None):
@@ -127,20 +159,8 @@ class KinectEyeTrackerApp:
 
     def _init_lsl(self):
         try:
-            from pylsl import StreamInfo, StreamOutlet
-            info = StreamInfo(
-                name="KinectGaze",
-                type="Gaze",
-                channel_count=10,
-                nominal_srate=30,
-                channel_format="float32",
-                source_id="kinect_v2_eyetracker"
-            )
-            # Channel list:
-            # 1: gaze_x_px, 2: gaze_y_px, 3: head_x_px, 4: head_y_px,
-            # 5: head_yaw_deg, 6: head_pitch_deg, 7: head_roll_deg,
-            # 8: head_dist_cm, 9: blink_l, 10: blink_r
-            self.lsl_outlet = StreamOutlet(info)
+            from pylsl import StreamOutlet
+            self.lsl_outlet = StreamOutlet(make_lsl_info(self.screen))
             print("Lab Streaming Layer (LSL) outlet 'KinectGaze' (10 channels) initialized.")
         except ImportError:
             print("pylsl not available; continuing without LSL outlet.")
