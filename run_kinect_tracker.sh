@@ -1,36 +1,21 @@
 #!/usr/bin/env bash
-# -------------------------------------------------
-# run_kinect_tracker.sh – launch the Kinect tracker
-#   * forces Qt to use the XCB platform (no Wayland)
-#   * tells Qt where the system fonts live
-#   * creates the symlink that OpenCV expects
-# -------------------------------------------------
-
+# Launch the Kinect tracker from anywhere: paths are resolved relative to this script.
+#   ./run_kinect_tracker.sh [--lsl] [--record] [...]   (see: ./run_kinect_tracker.sh --help)
 set -euo pipefail
 
-# -----------------------------------------------------------------
-# 1️⃣  Set Qt platform (XCB works on any regular X11 session)
-# -----------------------------------------------------------------
-export QT_QPA_PLATFORM=xcb
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}"
 
-# -----------------------------------------------------------------
-# 2️⃣  Tell Qt where to find fonts
-# -----------------------------------------------------------------
-export QT_QPA_FONTDIR="/usr/share/fonts/truetype/dejavu"
+# OpenCV's Qt backend: force X11/XWayland (its Wayland plugin is unreliable for fullscreen windows).
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 
-# -----------------------------------------------------------------
-# 3️⃣  Create the OpenCV‑expected font directory (if it does not exist)
-# -----------------------------------------------------------------
-CV2_FONT_DIR="$(pwd)/.venv/lib/python3.12/site-packages/cv2/qt/fonts"
+# OpenCV's bundled Qt looks for fonts in cv2/qt/fonts. Point it at a system font directory if one
+# exists (DejaVu on Debian/Ubuntu or Arch); otherwise Qt only prints harmless warnings.
+for fontdir in /usr/share/fonts/truetype/dejavu /usr/share/fonts/TTF /usr/share/fonts/dejavu; do
+  if [[ -d "${fontdir}" ]]; then
+    export QT_QPA_FONTDIR="${fontdir}"
+    break
+  fi
+done
 
-if [ ! -e "$CV2_FONT_DIR" ] && [ ! -L "$CV2_FONT_DIR" ]; then
-    echo "⚙️  Creating missing OpenCV font directory → $CV2_FONT_DIR"
-    mkdir -p "$(dirname "$CV2_FONT_DIR")"
-    # Symlink the system DejaVu fonts into the place OpenCV looks
-    ln -s /usr/share/fonts/truetype/dejavu "$CV2_FONT_DIR"
-fi
-
-# -----------------------------------------------------------------
-# 4️⃣  Run the tracker directly (bypassing standalone calibration.py)
-# -----------------------------------------------------------------
-uv run python tracker.py "$@"
+exec uv run python tracker.py "$@"
