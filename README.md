@@ -30,13 +30,13 @@ precise gaze matters.
 
 ## Requirements
 
-- Linux, Kinect v2, [libfreenect2](https://github.com/OpenKinect/libfreenect2) and
-  [kinect2pipe](https://github.com/swedishborgie/kinect2pipe) feeding a v4l2loopback device
-  (default `/dev/video10`).
-- The tracker prefers a lock-free shared-memory frame source (`/dev/shm/kinect2pipe_shm`,
-  see `shm_client.py`) written by a modified kinect2pipe that is not published yet; without it,
-  it falls back to reading the V4L2 device. The optional IR + depth segment
-  (`/dev/shm/kinect2pipe_ir_shm`) comes from the same modified kinect2pipe run with `--ir`.
+- Linux, Kinect v2, [libfreenect2](https://github.com/OpenKinect/libfreenect2) and the
+  [JohnGF/kinect2pipe](https://github.com/JohnGF/kinect2pipe) fork feeding a v4l2loopback device
+  (default `/dev/video10`): `./kinect_start.sh` there.
+- The tracker reads frames from the fork's lock-free shared memory (`/dev/shm/kinect2pipe_shm`,
+  see `shm_client.py`) and falls back to the V4L2 device, so upstream
+  [swedishborgie/kinect2pipe](https://github.com/swedishborgie/kinect2pipe) also works. The optional
+  IR + depth segment (`/dev/shm/kinect2pipe_ir_shm`) needs the fork started with `--ir`.
 - [uv](https://docs.astral.sh/uv/); Python 3.11+. Dependencies are in `pyproject.toml` / `uv.lock`.
 
 ## Quick start
